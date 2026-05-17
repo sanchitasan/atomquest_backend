@@ -14,6 +14,8 @@ class SharedGoalCreate(BaseModel):
 
     target_value: float
 
+    weightage: float
+
     employee_ids: List[int]
 
     primary_owner_id: int
