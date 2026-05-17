@@ -44,24 +44,19 @@ def create_checkin(
             detail="Goal must be approved before check-in"
         )
 
-    existing_checkin = db.query(CheckIn).filter(
-        CheckIn.goal_id == checkin.goal_id,
-        CheckIn.quarter == checkin.quarter
-    ).first()
-
-    if existing_checkin:
-
-        raise HTTPException(
-            status_code=400,
-            detail="Check-in already submitted for this quarter"
+    if goal.is_shared:
+        shared_goal_ids = db.query(Goal.id).filter(
+            Goal.shared_goal_id == goal.shared_goal_id
         )
-
-    allowed_windows = {
-        "Q1": [7],
-        "Q2": [10],
-        "Q3": [1],
-        "Q4": [3, 4]
-    }
+        existing_checkin = db.query(CheckIn).filter(
+            CheckIn.goal_id.in_(shared_goal_ids),
+            CheckIn.quarter == checkin.quarter
+        ).first()
+    else:
+        existing_checkin = db.query(CheckIn).filter(
+            CheckIn.goal_id == checkin.goal_id,
+            CheckIn.quarter == checkin.quarter
+        ).first()
     if goal.is_shared:
 
         if user["user_id"] != goal.primary_owner_id:
@@ -71,6 +66,33 @@ def create_checkin(
             )
 
     current_month = datetime.now().month
+    if existing_checkin:
+
+        raise HTTPException(
+            status_code=400,
+            detail="Check-in already submitted for this quarter"
+        )
+
+    if checkin.planned_value > goal.target_value:
+        raise HTTPException(
+
+            status_code=400,
+
+            detail="Planned value cannot exceed target"
+        )
+
+    if checkin.actual_value < 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Actual value cannot be negative"
+        )
+
+    allowed_windows = {
+        "Q1": [7],
+        "Q2": [10],
+        "Q3": [1],
+        "Q4": [3, 4]
+    }
 
     if not DEMO_MODE:
 
@@ -92,22 +114,16 @@ def create_checkin(
     new_checkin = CheckIn(
 
         quarter=checkin.quarter,
-
         planned_value=checkin.planned_value,
-
         actual_value=checkin.actual_value,
-
         progress_score=progress_score,
-
         status=status,
-
         employee_comment=checkin.employee_comment,
-
         goal_id=checkin.goal_id
     )
 
     db.add(new_checkin)
-
+    db.flush()
     create_audit_log(
         db=db,
         action="Quarterly Check-In Submitted",
@@ -148,34 +164,73 @@ def get_checkins(
     user=Depends(verify_role("employee"))
 ):
 
-    checkins = db.query(CheckIn).join(Goal).filter(
+    employee_goals = db.query(Goal).filter(
         Goal.employee_id == user["user_id"]
     ).all()
 
     response = []
 
-    for checkin in checkins:
-        response.append({
+    processed_shared_goals = set()
 
-            "id": checkin.id,
+    for goal in employee_goals:
 
-            "quarter": checkin.quarter,
+        # NORMAL GOALS
+        if not goal.is_shared:
 
-            "planned_value": checkin.planned_value,
+            goal_checkins = db.query(CheckIn).filter(
+                CheckIn.goal_id == goal.id
+            ).order_by(
+                CheckIn.created_at.desc()
+            ).all()
 
-            "actual_value": checkin.actual_value,
+        # SHARED GOALS
+        else:
 
-            "progress_score": checkin.progress_score,
+            if goal.shared_goal_id in processed_shared_goals:
+                continue
 
-            "status": checkin.status,
+            processed_shared_goals.add(
+                goal.shared_goal_id
+            )
 
-            "employee_comment": checkin.employee_comment,
+            primary_owner_goal = db.query(Goal).filter(
 
-            "manager_comment": checkin.manager_comment,
+                Goal.shared_goal_id == goal.shared_goal_id,
 
-            "goal_id": checkin.goal_id,
+                Goal.employee_id == goal.primary_owner_id
 
-            "created_at": checkin.created_at
-        })
+            ).first()
+
+            if not primary_owner_goal:
+                continue
+
+            goal_checkins = db.query(CheckIn).filter(
+
+                CheckIn.goal_id == primary_owner_goal.id
+
+            ).order_by(
+
+                CheckIn.created_at.desc()
+
+            ).all()
+
+        for checkin in goal_checkins:
+
+            response.append({
+
+                "id": checkin.id,
+                "quarter": checkin.quarter,
+                "planned_value": checkin.planned_value,
+                "actual_value": checkin.actual_value,
+                "progress_score": checkin.progress_score,
+                "status": checkin.status,
+                "employee_comment": checkin.employee_comment,
+                "manager_comment": checkin.manager_comment,
+                "goal_id": goal.id,
+                "goal_title": goal.title,
+                "is_shared": goal.is_shared,
+                "shared_goal_id": goal.shared_goal_id,
+                "created_at": checkin.created_at
+            })
 
     return response
