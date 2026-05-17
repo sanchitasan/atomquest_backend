@@ -215,7 +215,9 @@ def get_checkins(
             ).all()
 
         for checkin in goal_checkins:
-
+            checkin_goal = db.query(Goal).filter(
+                Goal.id == checkin.goal_id
+            ).first()
             response.append({
 
                 "id": checkin.id,
@@ -227,9 +229,9 @@ def get_checkins(
                 "employee_comment": checkin.employee_comment,
                 "manager_comment": checkin.manager_comment,
                 "goal_id": goal.id,
-                "goal_title": goal.title,
-                "is_shared": goal.is_shared,
-                "shared_goal_id": goal.shared_goal_id,
+                "goal_title": checkin_goal.title,
+                "is_shared": checkin_goal.is_shared,
+                "shared_goal_id": checkin_goal.shared_goal_id,
                 "created_at": checkin.created_at
             })
 
