@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy import Column, Integer, String, DateTime
+from sqlalchemy.sql import func
 from app.database import Base
 
 class User(Base):
@@ -9,6 +10,4 @@ class User(Base):
     email = Column(String(100), unique=True)
     password = Column(String(255))
     role = Column(String(50))
-    manager_id = Column(Integer, ForeignKey("users.id"), nullable=True)
-    created_at = Column(String(50))
-    updated_at = Column(String(50))
+

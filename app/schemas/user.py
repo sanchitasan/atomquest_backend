@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from pydantic import BaseModel, EmailStr
 
 class UserCreate(BaseModel):
@@ -5,7 +7,6 @@ class UserCreate(BaseModel):
     email: EmailStr
     password: str
     role: str
-
 
 class UserLogin(BaseModel):
     email: EmailStr

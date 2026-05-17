@@ -11,7 +11,8 @@ router = APIRouter()
 def get_audit_logs(
     db: Session = Depends(get_db),user=Depends(verify_role("admin"))
 ):
-
-    logs = db.query(AuditLog).all()
+    logs = db.query(AuditLog).order_by(
+        AuditLog.timestamp.desc()
+    ).all()
 
     return logs

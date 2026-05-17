@@ -32,6 +32,8 @@ def verify_role(required_role: str):
 
             return payload
 
+        except HTTPException:
+            raise
         except Exception:
             raise HTTPException(
                 status_code=401,

@@ -1,3 +1,4 @@
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI
 from app.database import engine, Base
 from app.models.user import User
@@ -10,9 +11,22 @@ from app.routes.checkin import router as checkin_router
 from app.routes.audit import router as audit_router
 from app.routes.report import router as report_router
 
+
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+
+    allow_origins=[
+        "http://localhost:5173","http://localhost:5174"
+    ],
+
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.include_router(user_router)
 app.include_router(goal_router)

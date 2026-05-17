@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends
+from datetime import datetime
+
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -14,15 +16,24 @@ from app.auth.role_checker import verify_role
 router = APIRouter()
 
 @router.post("/users")
+
 def create_user(user: UserCreate, db: Session = Depends(get_db)):
 
     hashed_password = hash_password(user.password)
+    existing_user = db.query(User).filter(
+        User.email == user.email
+    ).first()
 
+    if existing_user:
+        raise HTTPException(
+            status_code=400,
+            detail="Email already registered"
+        )
     new_user = User(
         name=user.name,
         email=user.email,
         password=hashed_password,
-        role=user.role
+        role=user.role,
     )
 
     db.add(new_user)
@@ -49,7 +60,10 @@ def login(user: UserLogin, db: Session = Depends(get_db)):
     ).first()
 
     if not db_user:
-        return {"error": "Invalid email"}
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid credentials"
+        )
 
     if not verify_password(
         user.password,
@@ -68,12 +82,5 @@ def login(user: UserLogin, db: Session = Depends(get_db)):
     return {
         "access_token": access_token,
         "token_type": "bearer",
-    }
-
-@router.get("/manager-only")
-def manager_route(
-    user=Depends(verify_role("manager"))
-):
-    return {
-        "message": "Welcome Manager"
+        "role": db_user.role,
     }
