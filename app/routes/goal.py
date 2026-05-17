@@ -8,6 +8,8 @@ from app.models.user import User
 from app.schemas.goal import GoalCreate
 from app.schemas.manager_goal import (ManagerBulkGoalUpdate)
 from app.utils.audit import create_audit_log
+from app.schemas.shared_goal import SharedGoalCreate
+import time
 
 router = APIRouter()
 
@@ -140,6 +142,9 @@ def get_my_goals(
             "target_value": goal.target_value,
             "weightage": goal.weightage,
             "status": goal.status,
+            "is_shared": goal.is_shared,
+            "shared_goal_id": goal.shared_goal_id,
+            "primary_owner_id": goal.primary_owner_id,
             "manager_email": manager.email if manager else None
         })
 
@@ -158,6 +163,15 @@ def edit_goal(
         Goal.id == goal_id,
         Goal.employee_id == user["user_id"]
     ).first()
+
+    if goal.is_shared:
+        goal.weightage = updated_goal.weightage
+
+        db.commit()
+
+        return {
+            "message": "Shared goal weightage updated"
+        }
 
     if not goal:
 
@@ -179,6 +193,7 @@ def edit_goal(
             status_code=400,
             detail="Submitted goals cannot be edited"
         )
+
 
     old_title = goal.title
     old_description = goal.description
@@ -617,6 +632,63 @@ def reject_goal(
 
     return {
         "message": "Goal rejected successfully"
+    }
+
+@router.post("/shared-goals")
+def create_shared_goal(
+    shared_goal: SharedGoalCreate,
+    db: Session = Depends(get_db),
+    user=Depends(verify_role("manager"))
+):
+
+    shared_goal_id = int(time.time())
+
+    for employee_id in shared_goal.employee_ids:
+
+        employee = db.query(User).filter(
+            User.id == employee_id
+        ).first()
+
+        if not employee:
+
+            raise HTTPException(
+                status_code=404,
+                detail=f"Employee {employee_id} not found"
+            )
+
+        goal = Goal(
+
+            title=shared_goal.title,
+
+            description=shared_goal.description,
+
+            thrust_area=shared_goal.thrust_area,
+
+            uom=shared_goal.uom,
+
+            target_value=shared_goal.target_value,
+
+            weightage=10,
+
+            employee_id=employee_id,
+
+            manager_id=user["user_id"],
+
+            status="draft",
+
+            is_shared=True,
+
+            shared_goal_id=shared_goal_id,
+
+            primary_owner_id=shared_goal.primary_owner_id
+        )
+
+        db.add(goal)
+
+    db.commit()
+
+    return {
+        "message": "Shared departmental KPI assigned successfully"
     }
 
 

@@ -18,3 +18,6 @@ class Goal(Base):
     employee_id = Column(Integer,ForeignKey("users.id"))
     manager_id = Column(Integer,ForeignKey("users.id"),nullable=True)
     approved_by = Column(Integer,ForeignKey("users.id"),nullable=True)
+    is_shared = Column(Boolean, default=False)
+    shared_goal_id = Column(Integer, nullable=True)
+    primary_owner_id = Column(Integer, nullable=True)

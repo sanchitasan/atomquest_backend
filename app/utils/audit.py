@@ -12,6 +12,7 @@ def create_audit_log(
     old_value=None,
     new_value=None,
     details=None,
+    governance_event=None
 ):
 
     log = AuditLog(
@@ -24,6 +25,7 @@ def create_audit_log(
         old_value=old_value,
         new_value=new_value,
         details=details,
+        governance_event=governance_event
     )
 
     db.add(log)

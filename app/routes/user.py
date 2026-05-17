@@ -52,6 +52,31 @@ def get_users(db: Session = Depends(get_db)):
 
     return users
 
+@router.get("/employees")
+def get_employees(
+    db: Session = Depends(get_db),
+    user=Depends(verify_role("manager"))
+):
+
+    employees = db.query(User).filter(
+        User.role == "employee"
+    ).all()
+
+    response = []
+
+    for employee in employees:
+
+        response.append({
+
+            "id": employee.id,
+
+            "name": employee.name,
+
+            "email": employee.email
+        })
+
+    return response
+
 @router.post("/login")
 def login(user: UserLogin, db: Session = Depends(get_db)):
 

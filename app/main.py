@@ -18,22 +18,22 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-
-    allow_origins=[
-        "http://localhost:5173","http://localhost:5174"
-    ],
-
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-app.include_router(user_router)
-app.include_router(goal_router)
-app.include_router(checkin_router)
-app.include_router(audit_router)
-app.include_router(report_router)
+app.include_router(user_router, prefix="/api")
+app.include_router(goal_router, prefix="/api")
+app.include_router(checkin_router, prefix="/api")
+app.include_router(audit_router, prefix="/api")
+app.include_router(report_router, prefix="/api")
 
 @app.get("/")
 def root():
-    return {"message": "Backend Running Successfully"}
+    return {"message": "AtomQuest Backend Running Successfully"}
+
+@app.get("/api")
+def api_root():
+    return {"message": "AtomQuest API v1.0", "status": "operational"}
