@@ -62,11 +62,14 @@ def create_goal(
         )
 
     employee_goals = db.query(Goal).filter(
-        Goal.employee_id == employee_id
+        Goal.employee_id == user["user_id"],
+        Goal.status != "rejected"
     ).all()
 
-    current_total = sum(g.weightage for g in employee_goals)
-
+    current_total = sum(
+        goal.weightage
+        for goal in employee_goals
+    )
     if current_total + goal.weightage > 100:
         raise HTTPException(
             status_code=400,
@@ -133,12 +136,13 @@ def get_my_goals(
             User.id == goal.manager_id
         ).first()
 
-    primary_owner = None
+        primary_owner = None
 
-    if goal.primary_owner_id:
-        primary_owner = db.query(User).filter(
-              User.id == goal.primary_owner_id
-        ).first()
+        if goal.primary_owner_id:
+            primary_owner = db.query(User).filter(
+                User.id == goal.primary_owner_id
+            ).first()
+
         response.append({
             "id": goal.id,
             "title": goal.title,
@@ -151,10 +155,12 @@ def get_my_goals(
             "is_shared": goal.is_shared,
             "shared_goal_id": goal.shared_goal_id,
             "primary_owner_id": goal.primary_owner_id,
-            "primary_owner_email": (primary_owner.email
-                if primary_owner else None
+            "primary_owner_email": (
+                primary_owner.email if primary_owner else None
             ),
-            "manager_email": manager.email if manager else None
+            "manager_email": (
+                manager.email if manager else None
+            )
         })
 
     return response
