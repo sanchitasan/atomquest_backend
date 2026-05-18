@@ -1,6 +1,6 @@
-# 🚀 AtomQuest Backend
+# 🚀 AlignIQ Backend
 
-AtomQuest Backend is the core API service powering the **AtomQuest Goal & KPI Management Platform**.  
+AAlignIQ Backend is the core API service powering the **AlignIQ Goal & Shared goal Management Platform**.  
 It provides secure, scalable, and role-based APIs for Employees, Managers, and Admins to manage goals, quarterly check-ins, approvals, analytics, and audit workflows.
 
 Built with **FastAPI**, the backend follows a modular architecture focused on performance, maintainability, and enterprise workflow management.
@@ -12,7 +12,7 @@ Built with **FastAPI**, the backend follows a modular architecture focused on pe
 The backend integrates with the AtomQuest frontend and database layer to provide:
 
 - Goal Creation & Approval Workflow
-- Quarterly KPI Tracking
+- Quarterly goal Tracking
 - Shared Goal Management
 - Manager Review System
 - Audit Logging
