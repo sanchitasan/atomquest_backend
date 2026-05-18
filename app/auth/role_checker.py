@@ -1,10 +1,10 @@
 from fastapi import Depends, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import jwt
+import os
 
-SECRET_KEY = "supersecretkey"
-ALGORITHM = "HS256"
-
+SECRET_KEY = os.getenv("SECRET_KEY")
+ALGORITHM = os.getenv("ALGORITHM")
 security = HTTPBearer()
 
 def verify_role(required_role: str):

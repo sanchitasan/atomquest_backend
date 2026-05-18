@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-
+from sqlalchemy import func
 from app.auth.role_checker import verify_role
 from app.database import get_db
 from app.models.goal import Goal
@@ -396,7 +396,10 @@ def get_pending_goals_for_manager(
     user=Depends(verify_role("manager")),
 ):
     manager_id = current_user_id(user)
-
+    total_pending = db.query(func.count(Goal.id)).filter(
+        Goal.manager_id == manager_id,
+        Goal.status == "submitted",
+    ).scalar()
     goals = db.query(Goal).filter(
         Goal.manager_id == manager_id,
         Goal.status == "submitted",
@@ -423,7 +426,10 @@ def get_pending_goals_for_manager(
             "manager_id": goal.manager_id,
         })
 
-    return response
+    return {
+        "total_pending": total_pending,
+        "goals": response
+    }
 
 @router.put("/manager/goals/bulk-update")
 def manager_bulk_update_goals(
