@@ -17,17 +17,10 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://localhost:5174",
-        "http://localhost:5175",
-        "https://atomquest-backend-anqi.onrender.com",
-        "https://atomquest-frontend-six.vercel.app/",
-    ],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-    allow_origin_regex="https://.*.vercel.app",  # For frontend deployed on Vercel
 )
 
 app.include_router(user_router, prefix="/api")
