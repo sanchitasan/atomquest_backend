@@ -9,7 +9,6 @@ from app.models.goal import Goal
 from app.models.user import User
 from app.models.checkin import CheckIn
 from app.models.auditlog import AuditLog
-from fastapi.responses import FileResponse
 import pandas as pd
 
 
