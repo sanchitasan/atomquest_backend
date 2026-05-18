@@ -19,6 +19,8 @@ def dashboard_stats(
 
     total_goals = db.query(Goal).count()
 
+    total_users = db.query(User).count()
+
     approved_goals = db.query(Goal).filter(
         Goal.status == "approved"
     ).count()
@@ -60,7 +62,8 @@ def dashboard_stats(
         "total_employees": total_employees,
         "employees_completed_checkins":employees_with_checkins,
         "total_managers": total_managers,
-        "total_admins": total_admins
+        "total_admins": total_admins,
+        "total_users": total_users,
     }
 
 @router.get("/achievement-report")
