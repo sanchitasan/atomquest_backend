@@ -1,3 +1,5 @@
+from fastapi.responses import StreamingResponse
+from io import BytesIO
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -9,6 +11,7 @@ from app.models.checkin import CheckIn
 from app.models.auditlog import AuditLog
 from fastapi.responses import FileResponse
 import pandas as pd
+
 
 router = APIRouter()
 
@@ -65,11 +68,7 @@ def dashboard_stats(
         "total_admins": total_admins,
         "total_users": total_users,
     }
-
-@router.get("/achievement-report")
-def achievement_report(
-    db: Session = Depends(get_db)
-):
+def build_report_dataframe(db: Session):
 
     checkins = db.query(CheckIn).all()
 
@@ -81,38 +80,109 @@ def achievement_report(
             Goal.id == checkin.goal_id
         ).first()
 
+        if not goal:
+            continue
+
         employee = db.query(User).filter(
             User.id == goal.employee_id
         ).first()
 
         report_data.append({
 
-            "Employee": employee.email,
+            "Employee Email":
+                employee.email if employee else "N/A",
 
-            "Goal": goal.title,
+            "Goal Title":
+                goal.title,
 
-            "Quarter": checkin.quarter,
+            "Quarter":
+                checkin.quarter,
 
-            "Planned Target": checkin.planned_value,
+            "Planned Target":
+                checkin.planned_value,
 
-            "Actual Achievement": checkin.actual_value,
+            "Actual Achievement":
+                checkin.actual_value,
 
-            "Progress Score": checkin.progress_score,
+            "Progress Score":
+                checkin.progress_score,
 
-            "Status": checkin.status
+            "Goal Status":
+                goal.status,
+
+            "Checkin Status":
+                checkin.status,
+
+            "Manager Comment":
+                checkin.manager_comment,
+
+            "Employee Comment":
+                checkin.employee_comment,
         })
 
-    df = pd.DataFrame(report_data)
+    return pd.DataFrame(report_data)
 
-    file_path = "achievement_report.csv"
 
-    df.to_csv(file_path, index=False)
 
-    return FileResponse(
+@router.get("/reports/export/csv")
+def export_csv_report(
+    db: Session = Depends(get_db)
+):
 
-        path=file_path,
+    df = build_report_dataframe(db)
 
-        filename="achievement_report.csv",
+    stream = BytesIO()
 
-        media_type="text/csv"
+    df.to_csv(stream, index=False)
+
+    stream.seek(0)
+
+    return StreamingResponse(
+
+        iter([stream.getvalue()]),
+
+        media_type="text/csv",
+
+        headers={
+            "Content-Disposition":
+                "attachment; filename=governance_report.csv"
+        }
+    )
+
+
+@router.get("/reports/export/excel")
+def export_excel_report(
+    db: Session = Depends(get_db)
+):
+
+    df = build_report_dataframe(db)
+
+    stream = BytesIO()
+
+    with pd.ExcelWriter(
+        stream,
+        engine="openpyxl"
+    ) as writer:
+
+        df.to_excel(
+            writer,
+            index=False,
+            sheet_name="Governance Report"
+        )
+
+    stream.seek(0)
+
+    return StreamingResponse(
+
+        iter([stream.getvalue()]),
+
+        media_type=(
+            "application/vnd.openxmlformats-"
+            "officedocument.spreadsheetml.sheet"
+        ),
+
+        headers={
+            "Content-Disposition":
+                "attachment; filename=governance_report.xlsx"
+        }
     )
