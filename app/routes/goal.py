@@ -133,6 +133,12 @@ def get_my_goals(
             User.id == goal.manager_id
         ).first()
 
+    primary_owner = None
+
+    if goal.primary_owner_id:
+        primary_owner = db.query(User).filter(
+              User.id == goal.primary_owner_id
+        ).first()
         response.append({
             "id": goal.id,
             "title": goal.title,
@@ -145,6 +151,9 @@ def get_my_goals(
             "is_shared": goal.is_shared,
             "shared_goal_id": goal.shared_goal_id,
             "primary_owner_id": goal.primary_owner_id,
+            "primary_owner_email": (primary_owner.email
+                if primary_owner else None
+            ),
             "manager_email": manager.email if manager else None
         })
 
