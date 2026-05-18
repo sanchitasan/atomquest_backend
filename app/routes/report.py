@@ -47,6 +47,10 @@ def dashboard_stats(
         User.role == "manager"
     ).count()
 
+    total_admins = db.query(User).filter(
+        User.role == "admin"
+    ).count()
+
     return {
         "total_goals": total_goals,
         "approved_goals": approved_goals,
@@ -56,6 +60,7 @@ def dashboard_stats(
         "total_employees": total_employees,
         "employees_completed_checkins":employees_with_checkins,
         "total_managers": total_managers,
+        "total_admins": total_admins
     }
 
 @router.get("/achievement-report")
