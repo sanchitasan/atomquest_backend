@@ -23,61 +23,6 @@ The backend integrates with the AtomQuest frontend and database layer to provide
 
 # 🏗️ System Architecture
 
-```mermaid
-graph TD
-
-    subgraph Frontend
-        FE[React + Vite Frontend]
-    end
-
-    subgraph Backend["atomquest_backend (FastAPI API)"]
-
-        Router[FastAPI Router /api]
-
-        subgraph Endpoints
-            Auth[/login /users]
-            Goals[/goals /goals/my /goals/submit]
-            Manager[/manager/team-progress]
-            Checkins[/checkins]
-            Reports[/dashboard/stats]
-            Audit[/audit-logs]
-        end
-
-        subgraph Services
-            AuthService[JWT Authentication]
-            GoalService[Goal & KPI Engine]
-            RBAC[Role-Based Middleware]
-            AuditService[Audit Logger]
-        end
-    end
-
-    subgraph Database
-        DB[(MySQL / PostgreSQL)]
-    end
-
-    FE --> Router
-
-    Router --> Auth
-    Router --> Goals
-    Router --> Manager
-    Router --> Checkins
-    Router --> Reports
-    Router --> Audit
-
-    Auth --> AuthService
-    Goals --> GoalService
-    Manager --> GoalService
-    Checkins --> GoalService
-
-    GoalService --> RBAC
-    Reports --> RBAC
-    Audit --> AuditService
-
-    AuthService --> DB
-    GoalService --> DB
-    AuditService --> DB
-```
-
 ---
 
 # ⚙️ Tech Stack
@@ -123,73 +68,13 @@ python-multipart
 
 Every request from the frontend passes through authentication, RBAC validation, business logic processing, and database transactions.
 
-```mermaid
-sequenceDiagram
-
-    participant FE as Frontend
-    participant API as FastAPI Backend
-    participant SEC as JWT/RBAC Middleware
-    participant SVC as Service Layer
-    participant DB as Database
-
-    FE->>API: API Request
-
-    API->>SEC: Validate JWT Token
-
-    alt Unauthorized
-        SEC-->>FE: 401 Unauthorized
-
-    else Authorized
-
-        API->>SEC: Verify User Role
-
-        alt Forbidden
-            SEC-->>FE: 403 Forbidden
-
-        else Access Granted
-
-            API->>SVC: Execute Business Logic
-
-            SVC->>DB: SQL Transaction
-
-            DB-->>SVC: Success Response
-
-            SVC-->>FE: 200 OK + Data
-
-        end
-    end
-```
 
 ---
 
 # 📈 Goal Lifecycle Workflow
 
-The backend maintains strict workflow states to ensure organizational KPI consistency and auditability.
+The backend maintains strict workflow states to ensure organizational Shared goal consistency and auditability.
 
-```mermaid
-stateDiagram-v2
-
-    [*] --> Draft : Create Goal
-
-    Draft --> Pending : Submit Goal
-
-    state "Manager Review" as Review {
-
-        Pending --> Approved : Approve Goal
-        Pending --> Rejected : Reject Goal
-
-    }
-
-    Rejected --> Draft : Edit & Resubmit
-
-    Approved --> InProgress : Quarterly Check-ins
-
-    InProgress --> Completed : Target Achieved
-
-    Completed --> Locked : Finalized
-
-    Locked --> Draft : Unlock by Admin
-```
 
 ---
 
@@ -274,8 +159,8 @@ atomquest_backend/
 ## 1️⃣ Clone Repository
 
 ```bash
-git clone https://github.com/sanchitasan/atomquest_backend.git
-cd atomquest_backend
+git clone https://github.com/sanchitasan/AlignIQ_backend.git
+cd AlignIQ_backend
 ```
 
 ---
@@ -359,7 +244,7 @@ http://localhost:8000/docs
 ✅ Manager Team Tracking  
 ✅ Real-Time Dashboard Stats  
 ✅ Goal Lock / Unlock System  
-✅ Exportable Reporting APIs  
+✅ Exportable Report in CSV and Excel Format
 
 ---
 
@@ -395,11 +280,6 @@ or
 
 Developed for **AtomQuest Hackathon 1.0**
 
-Team Members:
-- Shruti
-- Sanchita
-- AtomQuest Team
-
 ---
 
 # 📄 License
@@ -411,9 +291,9 @@ This project is licensed under the MIT License.
 # 🔗 Related Repositories
 
 ## Frontend
-https://github.com/sanchitasan/atomquest_frontend
+https://github.com/sanchitasan/AlignIQ_frontend
 
 ## Backend
-https://github.com/sanchitasan/atomquest_backend
+https://github.com/sanchitasan/AlignIQ_backend
 
 ---
