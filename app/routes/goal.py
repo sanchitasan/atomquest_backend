@@ -190,9 +190,10 @@ def edit_goal(
         goal.weightage = updated_goal.weightage
 
         db.commit()
+        db.refresh(goal)
 
         return {
-            "message": "Shared goal weightage updated"
+            "message": "Shared KPI weightage updated successfully"
         }
 
     if goal.is_locked:
@@ -849,7 +850,7 @@ def get_shared_goal_overview(
         })
     if not grouped_response:
         return []
-    
+
     return grouped_response
 @router.get("/goals")
 def get_goals(
