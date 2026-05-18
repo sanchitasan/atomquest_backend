@@ -180,6 +180,12 @@ def edit_goal(
         Goal.employee_id == user["user_id"]
     ).first()
 
+    if not goal:
+
+        raise HTTPException(
+            status_code=404,
+            detail="Goal not found"
+        )
     if goal.is_shared:
         goal.weightage = updated_goal.weightage
 
@@ -188,13 +194,6 @@ def edit_goal(
         return {
             "message": "Shared goal weightage updated"
         }
-
-    if not goal:
-
-        raise HTTPException(
-            status_code=404,
-            detail="Goal not found"
-        )
 
     if goal.is_locked:
 
@@ -765,6 +764,93 @@ def get_shared_goal_overview(
         })
 
     return response
+
+@router.get("/shared-goals/overview")
+def get_shared_goal_overview(
+    db: Session = Depends(get_db),
+    user=Depends(verify_role("employee"))
+):
+
+    employee_id = user["user_id"]
+
+    owned_goals = db.query(Goal).filter(
+        Goal.primary_owner_id == employee_id,
+        Goal.is_shared == True
+    ).all()
+
+    grouped_response = []
+
+    processed = set()
+
+    for goal in owned_goals:
+
+        if goal.shared_goal_id in processed:
+            continue
+
+        processed.add(goal.shared_goal_id)
+
+        related_goals = db.query(Goal).filter(
+            Goal.shared_goal_id == goal.shared_goal_id
+        ).all()
+
+        members = []
+
+        total_progress = 0
+
+        for item in related_goals:
+
+            employee = db.query(User).filter(
+                User.id == item.employee_id
+            ).first()
+
+            latest_checkin = db.query(CheckIn).filter(
+                CheckIn.goal_id == item.id
+            ).order_by(
+                CheckIn.created_at.desc()
+            ).first()
+
+            progress = (
+                latest_checkin.progress_score
+                if latest_checkin else 0
+            )
+
+            total_progress += progress
+
+            members.append({
+                "name": employee.name if employee else "Unknown",
+                "email": employee.email if employee else None,
+                "status": item.status,
+                "progress": progress,
+                "quarter": (
+                    latest_checkin.quarter
+                    if latest_checkin else "Not Submitted"
+                ),
+                "employee_id": item.employee_id,
+                "goal_id": item.id,
+                "shared_goal_id": item.shared_goal_id,
+                "owner": (
+                    item.employee_id == item.primary_owner_id
+                )
+            })
+
+        avg_progress = (
+            total_progress / len(related_goals)
+            if related_goals else 0
+        )
+
+        grouped_response.append({
+            "id": goal.shared_goal_id,
+            "title": goal.title,
+            "thrustArea": goal.thrust_area,
+            "progress": round(avg_progress),
+            "members": members,
+            "member_count": len(members),
+            "primary_owner_id": goal.primary_owner_id,
+        })
+    if not grouped_response:
+        return []
+    
+    return grouped_response
 @router.get("/goals")
 def get_goals(
     db: Session = Depends(get_db),

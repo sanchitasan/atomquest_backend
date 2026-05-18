@@ -59,10 +59,10 @@ def create_checkin(
         ).first()
     if goal.is_shared:
 
-        if user["user_id"] != goal.primary_owner_id:
+        if goal.employee_id != user["user_id"]:
             raise HTTPException(
                 status_code=403,
-                detail="Only primary owner can update shared goal progress"
+                detail="You can only update your own KPI checkins"
             )
 
     current_month = datetime.now().month
