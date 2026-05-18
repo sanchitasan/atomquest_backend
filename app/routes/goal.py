@@ -6,6 +6,7 @@ from app.database import get_db
 from app.models.goal import Goal
 from app.models.user import User
 from app.schemas.goal import GoalCreate
+from app.models.checkin import CheckIn
 from app.schemas.manager_goal import (ManagerBulkGoalUpdate)
 from app.utils.audit import create_audit_log
 from app.schemas.shared_goal import SharedGoalCreate
@@ -63,7 +64,7 @@ def create_goal(
 
     employee_goals = db.query(Goal).filter(
         Goal.employee_id == user["user_id"],
-        Goal.status != "rejected"
+        Goal.is_shared == False
     ).all()
 
     current_total = sum(
@@ -272,7 +273,8 @@ def submit_goals(
     employee_id = user["user_id"]
 
     employee_goals = db.query(Goal).filter(
-        Goal.employee_id == employee_id
+        Goal.employee_id == user["user_id"],
+        Goal.is_shared == False
     ).all()
 
     if not employee_goals:
@@ -349,7 +351,8 @@ def resubmit_goal(
         )
 
     employee_goals = db.query(Goal).filter(
-        Goal.employee_id == user["user_id"]
+        Goal.employee_id == user["user_id"],
+        Goal.is_shared == False
     ).all()
 
     total_weightage = sum(
@@ -689,7 +692,9 @@ def create_shared_goal(
 
             manager_id=user["user_id"],
 
-            status="draft",
+            status="approved",
+
+            is_locked=True,
 
             is_shared=True,
 
@@ -706,7 +711,60 @@ def create_shared_goal(
         "message": "Shared departmental KPI assigned successfully"
     }
 
+@router.get("/shared-goals/{shared_goal_id}/overview")
+def get_shared_goal_overview(
+    shared_goal_id: int,
+    db: Session = Depends(get_db),
+    user=Depends(verify_role("employee"))
+):
 
+    goals = db.query(Goal).filter(
+        Goal.shared_goal_id == shared_goal_id
+    ).all()
+
+    if not goals:
+        raise HTTPException(
+            status_code=404,
+            detail="Shared goal not found"
+        )
+
+    primary_owner_id = goals[0].primary_owner_id
+
+    if user["user_id"] != primary_owner_id:
+        raise HTTPException(
+            status_code=403,
+            detail="Only primary owner can view overview"
+        )
+
+    response = []
+
+    for goal in goals:
+
+        employee = db.query(User).filter(
+            User.id == goal.employee_id
+        ).first()
+
+        latest_checkin = db.query(CheckIn).filter(
+            CheckIn.goal_id == goal.id
+        ).order_by(
+            CheckIn.created_at.desc()
+        ).first()
+
+        response.append({
+            "employee_id": goal.employee_id,
+            "employee_email": employee.email if employee else None,
+            "goal_status": goal.status,
+            "progress_score": (
+                latest_checkin.progress_score
+                if latest_checkin else 0
+            ),
+            "last_checkin_quarter": (
+                latest_checkin.quarter
+                if latest_checkin else None
+            )
+        })
+
+    return response
 @router.get("/goals")
 def get_goals(
     db: Session = Depends(get_db),
