@@ -893,3 +893,114 @@ def get_goals(
         })
 
     return response
+@router.get("/manager/team-progress")
+def get_team_progress(
+    db: Session = Depends(get_db),
+    user=Depends(verify_role("manager"))
+):
+
+    manager_id = user["user_id"]
+
+    team_goals = db.query(Goal).filter(
+        Goal.manager_id == manager_id
+    ).all()
+
+    employee_map = {}
+
+    for goal in team_goals:
+
+        employee = db.query(User).filter(
+            User.id == goal.employee_id
+        ).first()
+
+        if not employee:
+            continue
+
+        if employee.email not in employee_map:
+
+            employee_map[employee.email] = {
+                "employee_email": employee.email,
+                "approved_count": 0,
+                "total_count": 0,
+                "avg_progress": 0,
+                "progress_entries": []
+            }
+
+        employee_map[employee.email]["total_count"] += 1
+
+        if goal.status == "approved":
+            employee_map[employee.email]["approved_count"] += 1
+
+        latest_checkin = db.query(CheckIn).filter(
+            CheckIn.goal_id == goal.id
+        ).order_by(
+            CheckIn.created_at.desc()
+        ).first()
+
+        if latest_checkin:
+
+            employee_map[employee.email][
+                "progress_entries"
+            ].append(
+                latest_checkin.progress_score
+            )
+
+    response = []
+
+    for employee_email, data in employee_map.items():
+
+        progress_entries = data["progress_entries"]
+
+        avg_progress = (
+            sum(progress_entries) / len(progress_entries)
+            if progress_entries else 0
+        )
+
+        response.append({
+            "employee_email": employee_email,
+            "approved_count": data["approved_count"],
+            "total_count": data["total_count"],
+            "avg_progress": round(avg_progress)
+        })
+
+    return response
+
+
+@router.get("/manager/checkins")
+def get_manager_checkins(
+    db: Session = Depends(get_db),
+    user=Depends(verify_role("manager"))
+):
+
+    manager_id = user["user_id"]
+
+    goals = db.query(Goal).filter(
+        Goal.manager_id == manager_id
+    ).all()
+
+    response = []
+
+    for goal in goals:
+
+        checkins = db.query(CheckIn).filter(
+            CheckIn.goal_id == goal.id
+        ).all()
+
+        for checkin in checkins:
+
+            employee = db.query(User).filter(
+                User.id == goal.employee_id
+            ).first()
+
+            response.append({
+                "employee_email": (
+                    employee.email if employee else None
+                ),
+                "goal_title": goal.title,
+                "quarter": checkin.quarter,
+                "progress_score": checkin.progress_score,
+                "status": checkin.status,
+                "created_at": checkin.created_at
+            })
+
+    return response
